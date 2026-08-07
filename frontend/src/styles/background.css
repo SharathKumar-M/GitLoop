@@ -1,0 +1,44 @@
+.background {
+    position: absolute;
+    inset:0;
+    overflow:hidden;
+    background: #050505;
+    z-index:-10;
+    
+}
+
+.purple-glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    background: radial-gradient(circle, rgba(128,0,128,0.5))
+}
+
+.network-lines{
+    position:absolute;
+    inset:0;
+    width:100%;
+    height:100;
+
+    z-index:2;
+
+}
+
+.network-lines path{
+    fill:none;
+
+    stroke:#8b5cf6;
+
+    stroke-width:2;
+
+    opacity:.25;
+
+    filter:drop-shadow(0 0 10px #7c3aed);
+}
+
+.network-lines circle{
+
+fill:#9f7aea;
+
+filter:drop-shadow(0 0 12px #a855f7);
+}
