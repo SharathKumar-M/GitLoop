@@ -7,7 +7,7 @@ function App() {
       <div className="relative min-h-screen overflow-hidden">
         <Background />
       </div>
-      <div className="relative z-10">
+      <div className="relative -z-10">
         <Landing />
       </div>
     </>
