@@ -1,19 +1,17 @@
-import Background from "./components/landing/background.jsx";
-import Landing from "./pages/landing.jsx";
+import {BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from "./pages/landing";
+import Login from "./pages/Login";
 
 function App() {
   return (
-    <>
-      <div className="relative min-h-screen overflow-hidden">
-        <Background />
-      </div>
-      <div className="relative -z-10">
-        <Landing />
-      </div>
-    </>
+    <BrowserRouter>
+    <Routes>
+      
+      <Route path="/" element={<Landing />} />
+      <Route path="/login" element={<Login />} />
+    </Routes>
+    </BrowserRouter>
   );
 }
-
-
 
 export default App;

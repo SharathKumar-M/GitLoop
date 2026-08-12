@@ -1,4 +1,8 @@
+import { useNavigate } from "react-router-dom";
+
 function Hero() {
+  const navigate = useNavigate();
+
   return (
     <section className="relative z-30 px-6 pt-20">
 
@@ -39,9 +43,12 @@ function Hero() {
         {/* Buttons */}
         <div className="mt-8 flex items-center justify-center gap-4">
 
-          <button className="rounded-full bg-white px-7 py-3.5 font-medium text-slate-900 transition duration-300 hover:scale-105">
-            Connect GitHub →
-          </button>
+          <button
+  onClick={() => navigate("/login")}
+  className="rounded-full bg-white px-7 py-3.5 font-medium text-slate-900 transition duration-300 hover:scale-105"
+>
+  Connect GitHub →
+</button>
 
           <button className="rounded-full border border-white/10 bg-white/5 px-7 py-3.5 font-medium text-white backdrop-blur-md transition duration-300 hover:bg-white/10">
             Explore GitLoop
