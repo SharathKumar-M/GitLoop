@@ -3,7 +3,7 @@
     inset:0;
     overflow:hidden;
     background: #050505;
-    z-index:-10;
+    z-index: 10;
     
 }
 
