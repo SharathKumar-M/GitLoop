@@ -46,8 +46,8 @@ function Login() {
 
           <div className="mb-10 text-center">
 
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10 text-lg font-bold text-violet-300 shadow-[0_0_30px_rgba(139,92,246,0.15)]">
-              G
+            <div className="mx-auto flex h-12 w-20 items-center justify-center rounded-xl border border-violet-400/20 bg-violet-500/10 text-lg font-bold text-violet-300 shadow-[0_0_30px_rgba(139,92,246,0.15)]">
+              Git◌◌p
             </div>
 
             <h1 className="mt-4 text-2xl font-semibold text-white">
