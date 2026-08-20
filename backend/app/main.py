@@ -1,7 +1,10 @@
 from fastapi import FastAPI
 from sqlalchemy import text
-from app.database.connection import engine 
+from app.database.connection import engine, Base
 from app.routes.auth import router as auth_router
+from app.models.user import User
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="GitLoop",
