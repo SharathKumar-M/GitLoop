@@ -1,7 +1,10 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams} from "react-router-dom";
 
 function Login() {
     const navigate = useNavigate();
+    const [searchParams] = useSearchParams();
+    const githubUsername = searchParams.get("github");
+
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#05050b]">
 
@@ -55,6 +58,25 @@ function Login() {
             </h1>
 
           </div>
+
+          {githubUsername && (
+  <div className="mb-6 rounded-xl border border-emerald-400/20 bg-emerald-400/10 p-4 text-center">
+    <p className="text-sm font-medium text-emerald-300">
+      GitHub connected successfully
+    </p>
+
+    <p className="mt-1 text-xs text-emerald-400/70">
+      Welcome, {githubUsername}
+    </p>
+
+    <button
+      onClick={() => navigate("/dashboard")}
+      className="mt-4 rounded-lg bg-emerald-400 px-4 py-2 text-sm font-medium text-slate-950"
+    >
+      Continue to Dashboard
+    </button>
+  </div>
+)}
 
 
           {/* Login Card */}

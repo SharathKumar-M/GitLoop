@@ -120,6 +120,6 @@ async def github_callback(code: str, state: str):
     username = user.get("login", "github-user")
 
     return RedirectResponse(
-        url=f"{FRONTEND_URL}/login?github={username}"
-    )
+    url=f"{FRONTEND_URL.rstrip('/')}/login?github={username}"
+)
 
