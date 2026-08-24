@@ -25,9 +25,10 @@ class User(Base):
         nullable=False,
     )
 
-    email: Mapped[str] = mapped_column(
+    email: Mapped[str | None] = mapped_column(
         String(255),
-        nullable=False,
+        # GitHub users may choose not to expose a public email address.
+        nullable=True,
     )
 
     avatar_url: Mapped[str] = mapped_column(

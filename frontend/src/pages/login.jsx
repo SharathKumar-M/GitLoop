@@ -107,7 +107,10 @@ function Login() {
 
             <button
             onClick={() => {
-    window.location.href = "http://127.0.0.1:8000/auth/github";
+    // Keep this host identical to GITHUB_REDIRECT_URI. OAuth state is stored
+    // in a host-only cookie, so mixing 127.0.0.1 and localhost drops it during
+    // GitHub's callback.
+    window.location.href = "http://localhost:8000/auth/github";
   }}
               className="
                 mt-8

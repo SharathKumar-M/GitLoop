@@ -9,6 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 
 Base.metadata.create_all(bind=engine)
 
+# `create_all` only creates missing tables; it does not update an existing
+# table.  Keep databases created before `User.email` became optional in sync
+# with the model so GitHub users without a public email can sign in.
+with engine.begin() as connection:
+    connection.execute(
+        text("ALTER TABLE users ALTER COLUMN email DROP NOT NULL")
+    )
+
 app = FastAPI(
     title="GitLoop",
     description="Backend API for GitLoop AI Codebase Intelligence Platform ",

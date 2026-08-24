@@ -7,6 +7,7 @@ import httpx
 from dotenv import load_dotenv
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
@@ -23,7 +24,7 @@ GITHUB_CLIENT_SECRET = os.getenv("GITHUB_CLIENT_SECRET")
 
 GITHUB_REDIRECT_URI = os.getenv(
     "GITHUB_REDIRECT_URI",
-    "http://127.0.0.1:8000/auth/github/callback",
+    "http://localhost:8000/auth/github/callback",
 )
 
 FRONTEND_URL = os.getenv(
@@ -156,8 +157,8 @@ async def github_callback(
     username = github_user.get("login")
     avatar_url = github_user.get("avatar_url")
 
-    # GitHub may not expose email in /user.
-    # We'll leave it nullable for now.
+    # GitHub may not expose an email address in /user.  The database column is
+    # nullable, so sign-in remains possible for users who keep it private.
     email = github_user.get("email")
 
     # -------------------------------------
@@ -174,24 +175,19 @@ async def github_callback(
     # 5. Create or update user
     # -------------------------------------
 
-    if user is None:
-
-        user = User(
-            github_id=github_id,
-            username=username,
-            email=email,
-            avatar_url=avatar_url,
-        )
-
-        db.add(user)
-        db.commit()
-        db.refresh(user)
-
-    else:
-
-        user.username = username
-        user.email = email
-        user.avatar_url = avatar_url
+    try:
+        if user is None:
+            user = User(
+                github_id=github_id,
+                username=username,
+                email=email,
+                avatar_url=avatar_url,
+            )
+            db.add(user)
+        else:
+            user.username = username
+            user.email = email
+            user.avatar_url = avatar_url
 
         db.commit()
         db.refresh(user)
@@ -200,24 +196,26 @@ async def github_callback(
     # 6. Create session
     # -------------------------------------
 
-    db.query(DbSession).filter(
-        DbSession.user_id == user.id
-    ).delete()
+        db.query(DbSession).filter(
+            DbSession.user_id == user.id
+        ).delete()
 
-    session_token = secrets.token_urlsafe(48)
-
-    expires_at = datetime.utcnow() + timedelta(
-        days=SESSION_DAYS
-    )
-
-    new_session = DbSession(
-        session_token=session_token,
-        user_id=user.id,
-        expires_at=expires_at,
-    )
-
-    db.add(new_session)
-    db.commit()
+        session_token = secrets.token_urlsafe(48)
+        expires_at = datetime.utcnow() + timedelta(days=SESSION_DAYS)
+        db.add(
+            DbSession(
+                session_token=session_token,
+                user_id=user.id,
+                expires_at=expires_at,
+            )
+        )
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="Unable to save GitHub sign-in data",
+        ) from exc
 
     # -------------------------------------
     # Redirect to frontend
