@@ -1,14 +1,16 @@
 import os
 import secrets
+from datetime import datetime, timedelta
 from urllib.parse import urlencode
 
 import httpx
 from dotenv import load_dotenv
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Response
+from fastapi import APIRouter, Cookie, Depends, HTTPException, Response, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
+from app.models.session import Session as DbSession
 from app.models.user import User
 
 load_dotenv()
@@ -28,6 +30,9 @@ FRONTEND_URL = os.getenv(
     "FRONTEND_URL",
     "http://localhost:5173",
 )
+
+SESSION_COOKIE_NAME = "gitloop_session"
+SESSION_DAYS = 7  # Session expiration in days
 
 
 @router.get("/github")
@@ -96,26 +101,16 @@ async def github_callback(
     # 2. Exchange authorization code
     # -------------------------------------
 
-    token_url = (
-        "https://github.com/login/oauth/access_token"
-    )
-
-    token_payload = {
-        "client_id": GITHUB_CLIENT_ID,
-        "client_secret": GITHUB_CLIENT_SECRET,
-        "code": code,
-        "redirect_uri": GITHUB_REDIRECT_URI,
-    }
-
-    token_headers = {
-        "Accept": "application/json",
-    }
-
     async with httpx.AsyncClient() as client:
         token_response = await client.post(
-            token_url,
-            data=token_payload,
-            headers=token_headers,
+            "https://github.com/login/oauth/access_token",
+            data={
+                "client_id": GITHUB_CLIENT_ID,
+                "client_secret": GITHUB_CLIENT_SECRET,
+                "code": code,
+                "redirect_uri": GITHUB_REDIRECT_URI,
+            },
+            headers={"Accept": "application/json"},
         )
 
     if token_response.status_code != 200:
@@ -125,13 +120,12 @@ async def github_callback(
         )
 
     token_data = token_response.json()
-
     access_token = token_data.get("access_token")
 
     if not access_token:
         raise HTTPException(
             status_code=400,
-            detail=token_data,
+            detail="GitHub did not return an access token",
         )
 
     # -------------------------------------
@@ -203,16 +197,130 @@ async def github_callback(
         db.refresh(user)
 
     # -------------------------------------
-    # 6. Temporary redirect
+    # 6. Create session
+    # -------------------------------------
+
+    db.query(DbSession).filter(
+        DbSession.user_id == user.id
+    ).delete()
+
+    session_token = secrets.token_urlsafe(48)
+
+    expires_at = datetime.utcnow() + timedelta(
+        days=SESSION_DAYS
+    )
+
+    new_session = DbSession(
+        session_token=session_token,
+        user_id=user.id,
+        expires_at=expires_at,
+    )
+
+    db.add(new_session)
+    db.commit()
+
+    # -------------------------------------
+    # Redirect to frontend
     # -------------------------------------
 
     frontend_url = FRONTEND_URL.rstrip("/")
 
-    redirect_response = RedirectResponse(
-        url=f"{frontend_url}/login?github={user.username}"
+    response = RedirectResponse(
+        url=f"{frontend_url}/dashboard"
     )
 
-    # Remove OAuth state cookie
-    redirect_response.delete_cookie("oauth_state")
+    response.set_cookie(
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
+        httponly=True,
+        secure=False,
+        samesite="lax",
+        max_age=SESSION_DAYS * 24 * 60 * 60,
+        path="/",
+    )
 
-    return redirect_response
+    return response
+
+@router.get("/me")
+def get_current_user(
+    gitloop_session: str | None = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    if not gitloop_session:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated",
+        )
+
+    session = (
+        db.query(DbSession)
+        .filter(DbSession.session_token == gitloop_session)
+        .first()
+    )
+
+    if session is None:
+        raise HTTPException(
+            status_code=401,
+            detail="Invalid session",
+        )
+
+    if session.expires_at < datetime.utcnow():
+        db.delete(session)
+        db.commit()
+
+        raise HTTPException(
+            status_code=401,
+            detail="Session expired",
+        )
+
+    user = (
+        db.query(User)
+        .filter(User.id == session.user_id)
+        .first()
+    )
+
+    if user is None:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found",
+        )
+
+    return {
+        "id": user.id,
+        "github_id": user.github_id,
+        "username": user.username,
+        "email": user.email,
+        "avatar_url": user.avatar_url,
+    }
+
+
+@router.post("/logout")
+def logout(
+    gitloop_session: str | None = Cookie(default=None),
+    db: Session = Depends(get_db),
+):
+    if gitloop_session:
+        session = (
+            db.query(DbSession)
+            .filter(
+                DbSession.session_token == gitloop_session
+            )
+            .first()
+        )
+
+        if session:
+            db.delete(session)
+            db.commit()
+
+    response = RedirectResponse(
+        url=f"{FRONTEND_URL.rstrip('/')}/login",
+        status_code=303,
+    )
+
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path="/",
+    )
+
+    return response
+
