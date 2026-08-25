@@ -20,7 +20,7 @@ function Dashboard() {
 
           <section className="p-6 md:p-8">
 
-            {/* Heading */}
+           
 
             <div className="mb-8">
 
@@ -42,7 +42,7 @@ function Dashboard() {
             </div>
 
 
-            {/* Stats */}
+            
 
             <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
 
@@ -73,7 +73,7 @@ function Dashboard() {
             </div>
 
 
-            {/* Repositories */}
+            
 
             <div className="mt-10">
 
