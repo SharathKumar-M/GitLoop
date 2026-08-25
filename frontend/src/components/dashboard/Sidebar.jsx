@@ -4,7 +4,7 @@ const navigation = [
   { name: "Overview", path: "/dashboard", icon: "⌂" },
   { name: "Repositories", path: "/repositories", icon: "◈" },
   { name: "AI Chat", path: "/chat", icon: "✦" },
-  { name: "Search", path: "/search", icon: "⌕" },
+  { name: "Suggetions", path: "/search", icon: "⌕" },
   { name: "Architecture", path: "/architecture", icon: "⌘" },
   { name: "Code Review", path: "/code-review", icon: "✓" },
   { name: "Security", path: "/security", icon: "◇" },
