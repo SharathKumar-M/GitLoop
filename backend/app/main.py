@@ -6,6 +6,7 @@ from app.routes.auth import router as auth_router
 from app.models.user import User
 from app.models.session import Session
 from fastapi.middleware.cors import CORSMiddleware 
+from app.github_app import router as github_app_router
 
 Base.metadata.create_all(bind=engine)
 
@@ -18,10 +19,13 @@ with engine.begin() as connection:
     )
 
 app = FastAPI(
+    
     title="GitLoop",
     description="Backend API for GitLoop AI Codebase Intelligence Platform ",
     version="0.1.0",
 )
+
+app.include_router(github_app_router)
 
 app.add_middleware(
     CORSMiddleware,
