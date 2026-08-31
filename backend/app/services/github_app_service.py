@@ -1,5 +1,5 @@
 
-
+import httpx
 import os
 import time
 from pathlib import Path
@@ -58,6 +58,98 @@ def create_github_app_jwt() -> str:
     )
 
     return token
+
+
+
+async def create_installation_access_token(
+        installation_id: int,
+) -> str:
+     """
+    Create a short-lived installation access token
+    for a specific GitHub App installation.
+    """
+     app_jwt = create_github_app_jwt()
+
+     url = (
+         f"https://api.github.com/app/installations/"
+         f"{installation_id}/access_tokens"
+
+     )
+
+     headers = {
+         "Authorization": f"Bearer {app_jwt}",
+         "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+     }
+
+     async with httpx.AsyncClient() as client:
+         response = await client.post(
+             url,
+             headers= headers,
+         )
+
+         if response.status_code != 201:
+             raise RuntimeError(
+                 "Failed to create GitHub installation access token: "
+                 f"{response.status_code} {response.text}"
+             )
+
+         data = response.json()
+
+         token = data.get("token")
+
+         if not token:
+             raise RuntimeError(
+                   "GitHub did not return an installation access token"
+             )
+
+         return token
+
+
+
+async def get_installation_repositories(
+    installation_id: int,
+) -> dict:
+    """
+    Fetch repositories accessible to a GitHub App installation.
+    """
+
+    token = await create_installation_access_token(
+        installation_id
+    )
+
+    url = "https://api.github.com/installation/repositories"
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+    params = {
+        "per_page": 100,
+        "page": 1,
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.get(
+            url,
+            headers=headers,
+            params=params,
+        )
+
+    if response.status_code != 200:
+        raise RuntimeError(
+            "Failed to fetch GitHub repositories: "
+            f"{response.status_code} {response.text}"
+        )
+
+    return response.json()
+
+
+
+
+
 
 
 

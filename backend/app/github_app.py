@@ -13,6 +13,8 @@ async def test_github_app_auuth():
         "token_created": bool(token),
      }
 
+
+
 @router.get("/setup", response_class=HTMLResponse)
 async def github_app_setup(
     installation_id: int = Query(...),
@@ -64,4 +66,62 @@ async def github_app_setup(
         </body>
     </html>
     """
-   
+
+
+
+from app.services.github_app_service import (
+     create_github_app_jwt,
+     create_installation_access_token,
+     get_installation_repositories,
+)
+
+
+@router.get("/test-installation-token")
+async def test_installation_token():
+     
+     installation_id = 156640279
+
+     token = await create_installation_access_token (
+          installation_id
+     )
+
+
+     return {
+             "message": "Installation access token created successfully",
+             "token_created": bool(token),
+         }
+
+
+@router.get("/test-repositories")
+async def test_repositories():
+     installation_id = 156640279
+
+     data = await get_installation_repositories(
+          installation_id
+     )
+
+     repositories = data.get("repositories", [])
+
+     return {
+          "total_count": data.get("total_count", 0),
+        "repositories": [
+            {
+                "id": repo.get("id"),
+                "name": repo.get("name"),
+                "full_name": repo.get("full_name"),
+                "private": repo.get("private"),
+                "language": repo.get("language"),
+                "default_branch": repo.get(
+                    "default_branch"
+                ),
+                "html_url": repo.get("html_url"),  
+     }
+
+    for repo in repositories
+
+        ],
+
+
+     }
+
+    
