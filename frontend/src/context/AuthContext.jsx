@@ -1,47 +1,42 @@
+import { createContext, useEffect, useState } from "react";
+
 import {
-  createContext,
-  useContext,
-  useEffect,
-  useState,
-} from "react";
+  getCurrentUser,
+  logout as logoutApi,
+} from "../services/api";
 
-import { getCurrentUser } from "../services/api";
 
-const AuthContext = createContext(null);
+export const AuthContext = createContext(null);
+
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    let mounted = true;
 
-    async function loadUser() {
+  useEffect(() => {
+    const checkAuth = async () => {
       try {
         const currentUser = await getCurrentUser();
 
-        if (mounted) {
-          setUser(currentUser);
-        }
+        setUser(currentUser);
       } catch (error) {
-        console.error("Failed to load user:", error);
-
-        if (mounted) {
-          setUser(null);
-        }
+        setUser(null);
       } finally {
-        if (mounted) {
-          setLoading(false);
-        }
+        setLoading(false);
       }
-    }
-
-    loadUser();
-
-    return () => {
-      mounted = false;
     };
+
+    checkAuth();
   }, []);
+
+
+  const logout = async () => {
+    await logoutApi();
+
+    setUser(null);
+  };
+
 
   return (
     <AuthContext.Provider
@@ -49,16 +44,10 @@ export function AuthProvider({ children }) {
         user,
         setUser,
         loading,
-        isAuthenticated: Boolean(user),
+        logout,
       }}
     >
       {children}
     </AuthContext.Provider>
   );
-}
-
-// This hook intentionally shares the AuthContext with the provider.
-// eslint-disable-next-line react-refresh/only-export-components
-export function useAuth() {
-  return useContext(AuthContext);
 }
