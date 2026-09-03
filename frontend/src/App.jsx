@@ -4,6 +4,7 @@ import Landing from "./pages/landing";
 import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/profile";
+import Repositories from "./pages/Repositories";
 
 import { AuthProvider } from "./context/AuthContext";
 
@@ -43,6 +44,14 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route
+          path="/repositories"
+          element={
+            <ProtectedRoute>
+              <Repositories />
+            </ProtectedRoute>
+          }></Route>
 
         </Routes>
       </AuthProvider>

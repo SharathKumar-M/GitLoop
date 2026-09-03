@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Sidebar from "../components/dashboard/Sidebar";
 import Topbar from "../components/dashboard/Topbar";
 import StatCard from "../components/dashboard/StatCard";
 import RepositoryCard from "../components/dashboard/RepositoryCard";
-import {useAuth} from "../context/useAuth";
+import { useAuth } from "../context/useAuth";
 
 
 export default function Dashboard() {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [repositories, setRepositories] = useState([]);
   const [loadingRepositories, setLoadingRepositories] = useState(true);
@@ -40,6 +42,7 @@ export default function Dashboard() {
         setRepositories(data.repositories || []);
       } catch (error) {
         console.error("Failed to fetch repositories:", error);
+
         setRepositoryError(
           "Unable to load your GitHub repositories."
         );
@@ -129,20 +132,31 @@ export default function Dashboard() {
             {/* Repository Section */}
             <section className="mt-10">
 
+              {/* Repository Header */}
               <div className="mb-5 flex items-center justify-between">
+
                 <div>
                   <h2 className="text-xl font-semibold">
                     Your repositories
                   </h2>
 
                   <p className="mt-1 text-sm text-gray-400">
-                    Repositories available through your GitHub App installation.
+                    Your latest GitHub repositories.
                   </p>
                 </div>
 
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-sm text-gray-400">
-                  {repositories.length}
-                </span>
+
+                {/* See All */}
+                {repositories.length > 5 && (
+                  <button
+                    type="button"
+                    onClick={() => navigate("/repositories")}
+                    className="text-sm text-violet-400 transition hover:text-violet-300"
+                  >
+                    See all →
+                  </button>
+                )}
+
               </div>
 
 
@@ -171,6 +185,7 @@ export default function Dashboard() {
                 !repositoryError &&
                 repositories.length === 0 && (
                   <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 text-center">
+
                     <p className="text-gray-300">
                       No repositories found.
                     </p>
@@ -178,6 +193,7 @@ export default function Dashboard() {
                     <p className="mt-2 text-sm text-gray-500">
                       Connect a GitHub repository to start using GitLoop.
                     </p>
+
                   </div>
                 )}
 
@@ -188,7 +204,7 @@ export default function Dashboard() {
                 repositories.length > 0 && (
                   <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-3">
 
-                    {repositories.map((repo) => (
+                    {repositories.slice(0, 5).map((repo) => (
                       <RepositoryCard
                         key={repo.id}
                         repository={repo}

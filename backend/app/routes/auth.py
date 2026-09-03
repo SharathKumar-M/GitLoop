@@ -296,6 +296,7 @@ def get_current_user(
 def logout(
     gitloop_session: str | None = Cookie(default=None),
     db: Session = Depends(get_db),
+    response: Response = None,
 ):
     if gitloop_session:
         session = (
@@ -310,9 +311,9 @@ def logout(
             db.delete(session)
             db.commit()
 
-    response = RedirectResponse(
-        url=f"{FRONTEND_URL.rstrip('/')}/login",
-        status_code=303,
+    response = Response(
+        content='{"message":"Logged out successfully"}',
+        media_type="application/json",
     )
 
     response.delete_cookie(
