@@ -82,7 +82,7 @@ export default function Repositories() {
                 </h1>
 
                 <p className="mt-2 text-slate-400">
-                  All repositories are here
+                  All repositories are available in gitloop.
                 </p>
               </div>
 
