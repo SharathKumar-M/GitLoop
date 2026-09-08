@@ -11,6 +11,7 @@ from app.services.github_app_service import (
     create_github_app_jwt,
     create_installation_access_token,
     get_installation_repositories,
+    get_recent_activity,
 )
 
 
@@ -240,4 +241,37 @@ async def get_repositories(
             }
             for repo in repositories
         ],
+    }
+
+
+
+
+@api_router.get("/activity")
+async def get_activity(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    installation = (
+        db.query(GitHubInstallation)
+        .filter(
+            GitHubInstallation.user_id == current_user.id
+        )
+        .first()
+    )
+
+    if installation is None:
+        return {
+            "user": current_user.username,
+            "activities": [],
+        }
+
+    activities = await get_recent_activity(
+        installation_id=installation.installation_id,
+        username=current_user.username,
+        limit=10,
+    )
+
+    return {
+        "user": current_user.username,
+        "activities": activities,
     }
