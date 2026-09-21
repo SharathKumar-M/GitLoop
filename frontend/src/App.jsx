@@ -5,18 +5,17 @@ import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/profile";
 import Repositories from "./pages/Repositories";
+import RepositoryDetails from "./pages/RepositoryDetails";
 
 import { AuthProvider } from "./context/AuthContext";
-
 import ProtectedRoute from "./components/auth/ProtectedRout";
-
 
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
-
+          {/* Public */}
           <Route
             path="/"
             element={<Landing />}
@@ -27,6 +26,7 @@ function App() {
             element={<Login />}
           />
 
+          {/* Dashboard */}
           <Route
             path="/dashboard"
             element={
@@ -36,6 +36,27 @@ function App() {
             }
           />
 
+          {/* All repositories */}
+          <Route
+            path="/repositories"
+            element={
+              <ProtectedRoute>
+                <Repositories />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Single repository */}
+          <Route
+            path="/repositories/:repositoryId"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* Profile */}
           <Route
             path="/profile"
             element={
@@ -44,20 +65,10 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          <Route
-          path="/repositories"
-          element={
-            <ProtectedRoute>
-              <Repositories />
-            </ProtectedRoute>
-          }></Route>
-
         </Routes>
       </AuthProvider>
     </BrowserRouter>
   );
 }
-
 
 export default App;
