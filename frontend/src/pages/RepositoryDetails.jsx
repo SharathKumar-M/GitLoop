@@ -9,6 +9,10 @@ export default function RepositoryDetails() {
 
   const [repository, setRepository] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  const [indexing, setIndexing] = useState(false);
+  const [indexResult, setIndexResult] = useState(null);
+
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -33,7 +37,8 @@ export default function RepositoryDetails() {
         const repositories = data.repositories || data || [];
 
         const selectedRepository = repositories.find(
-          (repo) => String(repo.id) === String(repositoryId)
+          (repo) =>
+            String(repo.id) === String(repositoryId)
         );
 
         if (!selectedRepository) {
@@ -42,8 +47,14 @@ export default function RepositoryDetails() {
 
         setRepository(selectedRepository);
       } catch (error) {
-        console.error("Repository details error:", error);
-        setError("Unable to load repository information.");
+        console.error(
+          "Repository details error:",
+          error
+        );
+
+        setError(
+          "Unable to load repository information."
+        );
       } finally {
         setLoading(false);
       }
@@ -51,6 +62,44 @@ export default function RepositoryDetails() {
 
     fetchRepository();
   }, [repositoryId]);
+
+  async function handleAnalyzeRepository() {
+    try {
+      setIndexing(true);
+      setIndexResult(null);
+      setError("");
+
+      const response = await fetch(
+        `http://localhost:8000/api/github/repositories/${repositoryId}/index`,
+        {
+          method: "POST",
+          credentials: "include",
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.detail || "Repository indexing failed."
+        );
+      }
+
+      setIndexResult(data);
+    } catch (error) {
+      console.error(
+        "Repository indexing error:",
+        error
+      );
+
+      setError(
+        error.message ||
+          "Unable to index repository."
+      );
+    } finally {
+      setIndexing(false);
+    }
+  }
 
   if (loading) {
     return (
@@ -66,17 +115,19 @@ export default function RepositoryDetails() {
     );
   }
 
-  if (error || !repository) {
+  if (error && !repository) {
     return (
       <AppLayout>
         <div className="mx-auto max-w-7xl">
           <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-10 text-center">
             <p className="text-sm text-red-400">
-              {error || "Repository not found."}
+              {error}
             </p>
 
             <button
-              onClick={() => navigate("/repositories")}
+              onClick={() =>
+                navigate("/repositories")
+              }
               className="mt-5 text-sm text-slate-400 transition hover:text-white"
             >
               ← Back to Repositories
@@ -91,9 +142,11 @@ export default function RepositoryDetails() {
     <AppLayout>
       <div className="mx-auto max-w-7xl">
 
-        {/* Back button */}
+        {/* Back */}
         <button
-          onClick={() => navigate("/repositories")}
+          onClick={() =>
+            navigate("/repositories")
+          }
           className="mb-6 text-sm text-slate-500 transition hover:text-white"
         >
           ← Back to Repositories
@@ -105,6 +158,7 @@ export default function RepositoryDetails() {
 
             <div>
               <div className="flex flex-wrap items-center gap-3">
+
                 <h1 className="text-3xl font-semibold tracking-tight text-white">
                   {repository.name}
                 </h1>
@@ -116,8 +170,11 @@ export default function RepositoryDetails() {
                       : "border-emerald-500/20 bg-emerald-500/10 text-emerald-400"
                   }`}
                 >
-                  {repository.private ? "Private" : "Public"}
+                  {repository.private
+                    ? "Private"
+                    : "Public"}
                 </span>
+
               </div>
 
               <p className="mt-2 text-sm text-slate-500">
@@ -125,8 +182,8 @@ export default function RepositoryDetails() {
               </p>
 
               <p className="mt-5 max-w-2xl text-sm leading-6 text-slate-400">
-                Repository information and GitLoop intelligence for this
-                GitHub repository.
+                Repository information and GitLoop
+                intelligence for this GitHub repository.
               </p>
             </div>
 
@@ -138,6 +195,7 @@ export default function RepositoryDetails() {
             >
               Open on GitHub ↗
             </a>
+
           </div>
         </section>
 
@@ -156,7 +214,6 @@ export default function RepositoryDetails() {
 
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
 
-            {/* Language */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <p className="text-sm text-slate-500">
                 Primary Language
@@ -167,7 +224,6 @@ export default function RepositoryDetails() {
               </p>
             </div>
 
-            {/* Branch */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <p className="text-sm text-slate-500">
                 Default Branch
@@ -178,25 +234,27 @@ export default function RepositoryDetails() {
               </p>
             </div>
 
-            {/* Visibility */}
             <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
               <p className="text-sm text-slate-500">
                 Visibility
               </p>
 
               <p className="mt-3 text-xl font-semibold text-white">
-                {repository.private ? "Private" : "Public"}
+                {repository.private
+                  ? "Private"
+                  : "Public"}
               </p>
             </div>
 
-            {/* GitLoop status */}
             <div className="rounded-2xl border border-purple-500/10 bg-purple-500/[0.03] p-6">
               <p className="text-sm text-slate-500">
                 GitLoop Status
               </p>
 
               <p className="mt-3 text-xl font-semibold text-purple-400">
-                Not Indexed
+                {indexResult
+                  ? indexResult.status
+                  : "Not Indexed"}
               </p>
             </div>
 
@@ -205,6 +263,7 @@ export default function RepositoryDetails() {
 
         {/* GitLoop Intelligence */}
         <section className="mt-8">
+
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-8 backdrop-blur-sm">
 
             <p className="text-sm font-medium text-purple-400">
@@ -212,71 +271,81 @@ export default function RepositoryDetails() {
             </p>
 
             <h2 className="mt-2 text-2xl font-semibold text-white">
-              Repository is not indexed yet
+              {indexing
+                ? "Analyzing repository..."
+                : indexResult
+                ? "Repository indexed"
+                : "Repository is not indexed yet"}
             </h2>
 
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-500">
-              GitLoop needs to analyze this repository before its AI
-              features can understand the codebase.
+              {indexing
+                ? "GitLoop is reading the repository structure and saving useful file metadata."
+                : indexResult
+                ? "GitLoop now has basic metadata for this repository and is ready for the next intelligence layer."
+                : "Analyze this repository so GitLoop can start building its codebase knowledge."}
             </p>
 
+            {/* Index result */}
+            {indexResult && (
+              <div className="mt-6 grid gap-4 sm:grid-cols-3">
+
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs text-slate-600">
+                    Files Indexed
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {indexResult.files_indexed}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs text-slate-600">
+                    Code / Config
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {indexResult.code_files}
+                  </p>
+                </div>
+
+                <div className="rounded-xl border border-white/10 bg-black/20 p-4">
+                  <p className="text-xs text-slate-600">
+                    Other Files
+                  </p>
+
+                  <p className="mt-2 text-2xl font-semibold text-white">
+                    {indexResult.other_files}
+                  </p>
+                </div>
+
+              </div>
+            )}
+
+            {/* Error */}
+            {error && repository && (
+              <div className="mt-5 rounded-xl border border-red-500/10 bg-red-500/[0.05] p-4">
+                <p className="text-sm text-red-400">
+                  {error}
+                </p>
+              </div>
+            )}
+
+            {/* Analyze button */}
             <button
-              onClick={() =>
-                alert("Repository indexing will be built next.")
-              }
-              className="mt-6 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-purple-500"
+              onClick={handleAnalyzeRepository}
+              disabled={indexing}
+              className="mt-6 rounded-xl bg-purple-600 px-5 py-2.5 text-sm font-medium text-white transition hover:bg-purple-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Analyze Repository
+              {indexing
+                ? "Analyzing..."
+                : indexResult
+                ? "Re-analyze Repository"
+                : "Analyze Repository"}
             </button>
 
           </div>
-        </section>
-
-        {/* Future features */}
-        <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-sm font-medium text-white">
-              Files
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Explore repository files and source code.
-            </p>
-
-            <p className="mt-4 text-xs text-slate-600">
-              Coming next
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-sm font-medium text-white">
-              AI Chat
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Ask questions about this repository.
-            </p>
-
-            <p className="mt-4 text-xs text-slate-600">
-              Coming later
-            </p>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-            <p className="text-sm font-medium text-white">
-              Architecture
-            </p>
-
-            <p className="mt-2 text-sm text-slate-500">
-              Understand relationships inside the codebase.
-            </p>
-
-            <p className="mt-4 text-xs text-slate-600">
-              Coming later
-            </p>
-          </div>
-
         </section>
 
       </div>
