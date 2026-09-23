@@ -137,3 +137,9 @@ def db_test():
         "database": "connected",
         "result": value,
     }
+
+from app.routes.repository_codebase import (
+    router as repository_codebase_router,
+)
+
+app.include_router(repository_codebase_router, prefix="/api/github")

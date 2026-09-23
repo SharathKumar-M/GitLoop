@@ -1,72 +1,100 @@
-import { NavLink } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const navigation = [
-  { name: "Overview", path: "/dashboard", icon: "⌂" },
-  { name: "Repositories", path: "/repositories", icon: "◈" },
-  { name: "AI Chat", path: "/chat", icon: "✦" },
-  { name: "Suggetions", path: "/search", icon: "⌕" },
-  { name: "Architecture", path: "/architecture", icon: "⌘" },
-  { name: "Code Review", path: "/code-review", icon: "✓" },
-  { name: "Security", path: "/security", icon: "◇" },
-];
+export default function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
 
-function Sidebar() {
+  const mainItems = [
+    {
+      name: "Overview",
+      path: "/dashboard",
+      icon: "⌂",
+    },
+    {
+      name: "Repositories",
+      path: "/repositories",
+      icon: "◇",
+    },
+  ];
+
+  const isActive = (path) => {
+    if (path === "/dashboard") {
+      return location.pathname === "/dashboard";
+    }
+
+    return location.pathname.startsWith(path);
+  };
+
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-white/10 bg-[#08080f] lg:flex lg:flex-col">
-
+    <aside className="flex h-full w-72 flex-col border-r border-white/10 bg-[#070812]/95 backdrop-blur-xl">
       {/* Logo */}
-
-      <div className="flex h-16 items-center border-b border-white/10 px-6">
-        <span className="text-xl font-semibold tracking-tight text-white">
-          Git<span className="text-violet-400">Loop</span>
-        </span>
+      <div className="flex h-[66px] items-center border-b border-white/10 px-6">
+        <button
+          onClick={() => navigate("/dashboard")}
+          className="text-2xl font-semibold tracking-tight text-white"
+        >
+          Git<span className="text-purple-400">Loop</span>
+        </button>
       </div>
 
-      {/* Navigation */}
+      {/* Main navigation */}
+      <nav className="flex-1 px-3 py-5">
+        <p className="px-3 pb-3 text-[11px] font-medium uppercase tracking-[0.18em] text-slate-600">
+          Workspace
+        </p>
 
-      <nav className="flex-1 space-y-1 px-3 py-6">
+        <div className="space-y-1">
+          {mainItems.map((item) => {
+            const active = isActive(item.path);
 
-        {navigation.map((item) => (
-          <NavLink
-            key={item.name}
-            to={item.path}
-            className={({ isActive }) =>
-              `group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm transition ${
-                isActive
-                  ? "bg-violet-500/10 text-violet-300"
-                  : "text-slate-500 hover:bg-white/[0.04] hover:text-slate-200"
-              }`
-            }
-          >
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04] text-xs">
-              {item.icon}
-            </span>
+            return (
+              <button
+                key={item.path}
+                onClick={() => navigate(item.path)}
+                className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+                  active
+                    ? "bg-purple-500/10 text-purple-300"
+                    : "text-slate-500 hover:bg-white/[0.03] hover:text-slate-300"
+                }`}
+              >
+                <span
+                  className={`flex h-8 w-8 items-center justify-center rounded-lg border text-sm ${
+                    active
+                      ? "border-purple-500/20 bg-purple-500/10 text-purple-300"
+                      : "border-white/5 bg-white/[0.02] text-slate-500"
+                  }`}
+                >
+                  {item.icon}
+                </span>
 
-            {item.name}
-          </NavLink>
-        ))}
-
+                <span className="text-sm font-medium">
+                  {item.name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </nav>
 
-      {/* Bottom */}
-
+      {/* Settings */}
       <div className="border-t border-white/10 p-3">
-
-        <NavLink
-          to="/settings"
-          className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 transition hover:bg-white/[0.04] hover:text-slate-200"
+        <button
+          onClick={() => navigate("/settings")}
+          className={`flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
+            location.pathname.startsWith("/settings")
+              ? "bg-purple-500/10 text-purple-300"
+              : "text-slate-500 hover:bg-white/[0.03] hover:text-slate-300"
+          }`}
         >
-          <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/[0.04]">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/5 bg-white/[0.02] text-sm">
             ⚙
           </span>
 
-          Settings
-        </NavLink>
-
+          <span className="text-sm font-medium">
+            Settings
+          </span>
+        </button>
       </div>
-
     </aside>
   );
 }
-
-export default Sidebar;

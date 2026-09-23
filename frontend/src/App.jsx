@@ -1,4 +1,8 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+} from "react-router-dom";
 
 import Landing from "./pages/landing";
 import Login from "./pages/login";
@@ -15,6 +19,7 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <Routes>
+
           {/* Public */}
           <Route
             path="/"
@@ -26,7 +31,7 @@ function App() {
             element={<Login />}
           />
 
-          {/* Dashboard */}
+          {/* Main application */}
           <Route
             path="/dashboard"
             element={
@@ -36,7 +41,6 @@ function App() {
             }
           />
 
-          {/* All repositories */}
           <Route
             path="/repositories"
             element={
@@ -46,9 +50,63 @@ function App() {
             }
           />
 
-          {/* Single repository */}
+          {/* Repository workspace */}
           <Route
             path="/repositories/:repositoryId"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/codebase"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/ai-chat"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/suggestions"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/architecture"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/code-review"
+            element={
+              <ProtectedRoute>
+                <RepositoryDetails />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/repositories/:repositoryId/security"
             element={
               <ProtectedRoute>
                 <RepositoryDetails />
@@ -63,8 +121,27 @@ function App() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            }
+            }s
           />
+
+          <Route
+          path="/repositories/:repositoryId"
+          element={
+            <ProtectedRoute>
+              <RepositoryDetails />
+            </ProtectedRoute>
+          }
+          />
+
+          <Route
+          path="/repositories/:repositoryId/:tab"
+          element={
+            <ProtectedRoute>
+              <RepositoryDetails />
+            </ProtectedRoute>
+          }
+          />
+
         </Routes>
       </AuthProvider>
     </BrowserRouter>
