@@ -143,3 +143,6 @@ from app.routes.repository_codebase import (
 )
 
 app.include_router(repository_codebase_router, prefix="/api/github")
+
+app.include_router(repository_indexing_router, prefix="/api/github")
+
