@@ -312,46 +312,23 @@ export default function RepositoryDetails() {
   const activeTab = getActiveTab(location.pathname);
 
   async function fetchRepository() {
+    // Use the repository information endpoint as the single source for
+    // repository metadata. This avoids the separate repositories-list
+    // request, which can time out while talking to GitHub.
     const response = await fetch(
-      `${API_BASE}/api/github/repositories/${repositoryId}`,
-      { credentials: "include" }
-    );
-
-    if (response.status === 404) {
-      return fetchRepositoryFromList();
-    }
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.detail || "Unable to load repository.");
-    }
-
-    setRepository(data.repository || data);
-  }
-
-  async function fetchRepositoryFromList() {
-    const response = await fetch(
-      `${API_BASE}/api/github/repositories`,
+      `${API_BASE}/api/github/repositories/${repositoryId}/information`,
       { credentials: "include" }
     );
 
     const data = await response.json();
 
     if (!response.ok) {
-      throw new Error(data.detail || "Unable to load repository.");
+      throw new Error(
+        data.detail || "Unable to load repository information."
+      );
     }
 
-    const repositories = data.repositories || data || [];
-    const selectedRepository = repositories.find(
-      (item) => String(item.id) === String(repositoryId)
-    );
-
-    if (!selectedRepository) {
-      throw new Error("Repository not found.");
-    }
-
-    setRepository(selectedRepository);
+    setRepository(data.repository || null);
   }
 
   async function fetchInformation() {

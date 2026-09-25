@@ -146,3 +146,12 @@ app.include_router(repository_codebase_router, prefix="/api/github")
 
 app.include_router(repository_indexing_router, prefix="/api/github")
 
+from app.routes.file_intelligence import (
+    router as file_intelligence_router,
+)
+
+app.include_router(
+    file_intelligence_router,
+    prefix="/api/github",
+)
+
