@@ -155,3 +155,11 @@ app.include_router(
     prefix="/api/github",
 )
 
+from app.routes.repository_architecture import (
+    router as repository_architecture_router,
+)
+
+app.include_router(
+    repository_architecture_router,
+    prefix="/api/github",
+)
