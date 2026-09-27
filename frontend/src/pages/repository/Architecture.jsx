@@ -211,6 +211,8 @@ export default function Architecture({ repository }) {
   const [error, setError] = useState("");
   const [activeLayer, setActiveLayer] = useState("all");
   const [selectedNode, setSelectedNode] = useState(null);
+  const [inspectorTab, setInspectorTab] = useState("overview");
+  const [focusNodeId, setFocusNodeId] = useState(null);
 
 
   async function fetchArchitecture(isRefresh = false) {
@@ -272,6 +274,8 @@ export default function Architecture({ repository }) {
       );
 
       setSelectedNode(null);
+      setFocusNodeId(null);
+      setInspectorTab("overview");
     } catch (requestError) {
       console.error(
         "Architecture error:",
@@ -294,14 +298,39 @@ export default function Architecture({ repository }) {
   }, [repository?.id, repository?.repository_id]);
 
 
+  const connectedNodeIds = useMemo(() => {
+    if (!focusNodeId) return new Set();
+
+    const ids = new Set([focusNodeId]);
+
+    edges.forEach((edge) => {
+      if (edge.source === focusNodeId) ids.add(edge.target);
+      if (edge.target === focusNodeId) ids.add(edge.source);
+    });
+
+    return ids;
+  }, [edges, focusNodeId]);
+
+
   const filteredNodes = useMemo(() => {
     return nodes.map((node) => ({
       ...node,
       hidden:
         activeLayer !== "all" &&
         node.data?.layer !== activeLayer,
+      style: {
+        ...(node.style || {}),
+        opacity:
+          focusNodeId && !connectedNodeIds.has(node.id)
+            ? 0.18
+            : 1,
+        filter:
+          focusNodeId && node.id !== focusNodeId && connectedNodeIds.has(node.id)
+            ? "brightness(1.18) saturate(1.15)"
+            : "none",
+      },
     }));
-  }, [nodes, activeLayer]);
+  }, [nodes, activeLayer, focusNodeId, connectedNodeIds]);
 
 
   const visibleNodeIds = useMemo(
@@ -317,23 +346,49 @@ export default function Architecture({ repository }) {
 
   const filteredEdges = useMemo(
     () =>
-      edges.map((edge) => ({
-        ...edge,
-        hidden:
-          !visibleNodeIds.has(edge.source) ||
-          !visibleNodeIds.has(edge.target),
-      })),
-    [edges, visibleNodeIds]
+      edges.map((edge) => {
+        const isFocusEdge =
+          !!focusNodeId &&
+          (edge.source === focusNodeId || edge.target === focusNodeId);
+
+        return {
+          ...edge,
+          hidden:
+            !visibleNodeIds.has(edge.source) ||
+            !visibleNodeIds.has(edge.target),
+          style: {
+            ...(edge.style || {}),
+            opacity:
+              focusNodeId && !isFocusEdge
+                ? 0.12
+                : isFocusEdge
+                  ? 1
+                  : 0.75,
+            strokeWidth: isFocusEdge ? 2.4 : 1.2,
+          },
+        };
+      }),
+    [edges, visibleNodeIds, focusNodeId]
   );
 
 
   function handleNodeClick(_, node) {
     setSelectedNode(node);
+    setInspectorTab("overview");
   }
 
 
   function closeDetails() {
     setSelectedNode(null);
+    setFocusNodeId(null);
+    setInspectorTab("overview");
+  }
+
+
+  function toggleFocus(node) {
+    setFocusNodeId((current) =>
+      current === node.id ? null : node.id
+    );
   }
 
 
@@ -527,8 +582,19 @@ export default function Architecture({ repository }) {
 
         {selectedNode && (
           <DetailsPanel
+            repositoryId={repository?.id ?? repository?.repository_id}
             node={selectedNode}
+            nodes={nodes}
+            edges={edges}
+            activeTab={inspectorTab}
+            onTabChange={setInspectorTab}
+            focused={focusNodeId === selectedNode.id}
+            onFocus={() => toggleFocus(selectedNode)}
             onClose={closeDetails}
+            onSelectNode={(nextNode) => {
+              setSelectedNode(nextNode);
+              setInspectorTab("overview");
+            }}
           />
         )}
       </div>
@@ -709,109 +775,572 @@ function LoadingArchitecture() {
 }
 
 
-function DetailsPanel({ node, onClose }) {
+function DetailsPanel({
+  repositoryId,
+  node,
+  nodes,
+  edges,
+  activeTab,
+  onTabChange,
+  focused,
+  onFocus,
+  onClose,
+  onSelectNode,
+}) {
   const data = node.data || {};
   const layer =
     layerStyles[data.layer] || layerStyles.service;
 
+  const [fileAnalysis, setFileAnalysis] = useState(null);
+  const [loadingFileAnalysis, setLoadingFileAnalysis] = useState(false);
+  const [fileAnalysisError, setFileAnalysisError] = useState("");
+
+  const exactFilePath =
+    data.items?.length === 1
+      ? data.items[0]
+      : null;
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadFileAnalysis() {
+      if (activeTab !== "overview" || !repositoryId || !exactFilePath) {
+        setFileAnalysis(null);
+        setLoadingFileAnalysis(false);
+        setFileAnalysisError("");
+        return;
+      }
+
+      try {
+        setLoadingFileAnalysis(true);
+        setFileAnalysis(null);
+        setFileAnalysisError("");
+
+        const contentResponse = await fetch(
+          `${API_BASE}/api/github/repositories/${repositoryId}/file-content?path=${encodeURIComponent(exactFilePath)}`,
+          { credentials: "include" }
+        );
+
+        const contentData = await contentResponse.json();
+
+        if (!contentResponse.ok) {
+          throw new Error(
+            contentData.detail ||
+              "Unable to read the selected file."
+          );
+        }
+
+        const filename =
+          exactFilePath.split("/").pop() || exactFilePath;
+        const language =
+          data.languages?.length === 1
+            ? data.languages[0]
+            : undefined;
+
+        const analysisResponse = await fetch(
+          `${API_BASE}/api/github/repositories/${repositoryId}/file-intelligence`,
+          {
+            method: "POST",
+            credentials: "include",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              path: exactFilePath,
+              filename,
+              language,
+              content: contentData.content || "",
+            }),
+          }
+        );
+
+        const analysisData = await analysisResponse.json();
+
+        if (!analysisResponse.ok) {
+          throw new Error(
+            analysisData.detail ||
+              "Unable to generate file intelligence."
+          );
+        }
+
+        if (!cancelled) {
+          setFileAnalysis(analysisData.analysis || null);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          console.error("Architecture file intelligence error:", error);
+          setFileAnalysisError(
+            error.message ||
+              "Unable to analyze this file right now."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingFileAnalysis(false);
+        }
+      }
+    }
+
+    loadFileAnalysis();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    activeTab,
+    repositoryId,
+    exactFilePath,
+    data.languages?.join("|"),
+  ]);
+
+  const connectedIds = new Set();
+  const incoming = [];
+  const outgoing = [];
+
+  edges.forEach((edge) => {
+    if (edge.target === node.id) {
+      connectedIds.add(edge.source);
+      incoming.push(edge.source);
+    }
+
+    if (edge.source === node.id) {
+      connectedIds.add(edge.target);
+      outgoing.push(edge.target);
+    }
+  });
+
+  const connectedNodes = nodes.filter((item) =>
+    connectedIds.has(item.id)
+  );
+
+  const incomingNodes = nodes.filter((item) =>
+    incoming.includes(item.id)
+  );
+
+  const outgoingNodes = nodes.filter((item) =>
+    outgoing.includes(item.id)
+  );
+
   return (
-    <div className="absolute right-4 top-4 z-20 w-[340px] max-h-[calc(100%-32px)] overflow-auto rounded-2xl border border-white/10 bg-[#090b11]/96 p-5 shadow-2xl backdrop-blur-xl">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p
-            className="text-[10px] uppercase tracking-[0.18em]"
+    <aside className="absolute right-0 top-0 z-30 flex h-full w-[390px] flex-col overflow-hidden border-l border-white/10 bg-[#090b11]/97 shadow-[-20px_0_55px_rgba(0,0,0,0.28)] backdrop-blur-2xl">
+      <div
+        className="h-1 w-full"
+        style={{
+          background: `linear-gradient(90deg, ${layer.color}, transparent)`,
+          boxShadow: `0 0 24px ${layer.glow}`,
+        }}
+      />
+
+      <div className="shrink-0 border-b border-white/10 p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{
+                  background: layer.color,
+                  boxShadow: `0 0 12px ${layer.color}`,
+                }}
+              />
+
+              <p
+                className="text-[10px] font-medium uppercase tracking-[0.2em]"
+                style={{ color: layer.color }}
+              >
+                {layer.label} node
+              </p>
+            </div>
+
+            <h2
+              className="mt-2 truncate text-lg font-semibold text-white"
+              title={data.title}
+            >
+              {data.title || "Unnamed module"}
+            </h2>
+
+            {data.path && (
+              <p
+                className="mt-1 truncate text-[11px] text-slate-600"
+                title={data.path}
+              >
+                {data.path}
+              </p>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/5 bg-white/[0.025] text-slate-500 transition hover:border-white/10 hover:bg-white/[0.06] hover:text-white"
+            aria-label="Close architecture inspector"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="mt-4 flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onFocus}
+            className={`flex-1 rounded-xl border px-3 py-2 text-xs font-medium transition ${
+              focused
+                ? "text-white"
+                : "text-slate-400 hover:text-white"
+            }`}
             style={{
-              color: layer.color,
+              borderColor: focused
+                ? `${layer.color}55`
+                : "rgba(255,255,255,0.08)",
+              background: focused
+                ? `${layer.color}12`
+                : "rgba(255,255,255,0.025)",
             }}
           >
-            {layer.label}
-          </p>
+            {focused ? "Focus mode on" : "Focus this node"}
+          </button>
 
-          <h2 className="mt-2 break-words text-lg font-semibold text-white">
-            {data.title}
-          </h2>
-        </div>
-
-        <button
-          type="button"
-          onClick={onClose}
-          className="text-lg text-slate-600 transition hover:text-white"
-          aria-label="Close details"
-        >
-          ×
-        </button>
-      </div>
-
-      <p className="mt-3 text-sm leading-6 text-slate-400">
-        {data.description}
-      </p>
-
-      <div className="mt-5 grid grid-cols-3 gap-2">
-        <Metric
-          label="Files"
-          value={data.file_count ?? 0}
-        />
-
-        <Metric
-          label="Incoming"
-          value={
-            data.incoming_relationships ?? 0
-          }
-        />
-
-        <Metric
-          label="Outgoing"
-          value={
-            data.outgoing_relationships ?? 0
-          }
-        />
-      </div>
-
-      {data.languages?.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-600">
-            Languages
-          </p>
-
-          <div className="mt-2 flex flex-wrap gap-2">
-            {data.languages.map((language) => (
-              <span
-                key={language}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-slate-400"
-              >
-                {language}
-              </span>
-            ))}
+          <div className="rounded-xl border border-white/5 bg-white/[0.025] px-3 py-2 text-[10px] text-slate-600">
+            {connectedNodes.length} connected
           </div>
         </div>
-      )}
 
-      {data.items?.length > 0 && (
-        <div className="mt-5">
-          <p className="text-[10px] uppercase tracking-[0.18em] text-slate-600">
-            Repository files
-          </p>
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          <Metric
+            label="Files"
+            value={data.file_count ?? 0}
+          />
+          <Metric
+            label="Incoming"
+            value={data.incoming_relationships ?? 0}
+          />
+          <Metric
+            label="Outgoing"
+            value={data.outgoing_relationships ?? 0}
+          />
+        </div>
 
-          <div className="mt-2 space-y-1.5">
-            {data.items.map((item) => (
-              <div
-                key={item}
-                className="rounded-lg border border-white/5 bg-white/[0.025] px-3 py-2 text-[11px] leading-5 text-slate-400"
-              >
-                {item}
+        <div className="mt-4 flex rounded-xl border border-white/5 bg-white/[0.018] p-1">
+          {[
+            ["overview", "Overview"],
+            ["connections", "Connections"],
+            ["files", "Files"],
+          ].map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => onTabChange(key)}
+              className={`flex-1 rounded-lg px-2 py-2 text-[11px] transition ${
+                activeTab === key
+                  ? "bg-white/[0.07] text-white shadow-sm"
+                  : "text-slate-600 hover:text-slate-300"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-y-auto p-5">
+        {activeTab === "overview" && (
+          <div className="space-y-5">
+            <InspectorSection
+              eyebrow="What is it?"
+              title="Repository role"
+            >
+              {loadingFileAnalysis ? (
+                <div className="rounded-xl border border-purple-500/10 bg-purple-500/[0.035] p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white/10 border-t-purple-400" />
+                    <div>
+                      <p className="text-xs font-medium text-slate-300">
+                        Reading this file
+                      </p>
+                      <p className="mt-1 text-[11px] text-slate-600">
+                        GitLoop is analyzing the actual source, structure, and behavior.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ) : fileAnalysis?.what_is_this_file ? (
+                <p className="text-sm leading-7 text-slate-300">
+                  {fileAnalysis.what_is_this_file}
+                </p>
+              ) : (
+                <p className="text-sm leading-7 text-slate-400">
+                  {data.file_count === 1
+                    ? fileAnalysisError ||
+                      data.description ||
+                      "The role of this file could not be determined from the available source analysis."
+                    : `This node groups ${data.file_count ?? 0} repository files. Exact file intelligence is shown when a node represents one file.`}
+                </p>
+              )}
+            </InspectorSection>
+
+            <InspectorSection
+              eyebrow="Why is it here?"
+              title="Architectural purpose"
+            >
+              <p className="text-sm leading-7 text-slate-300">
+                {fileAnalysis?.why_is_this_file_used ||
+                  (data.file_count === 1
+                    ? (loadingFileAnalysis
+                        ? "Analyzing why this file exists and what role its code performs..."
+                        : fileAnalysisError ||
+                          "The purpose of this file could not be determined from the available source alone.")
+                    : `This node represents ${data.file_count ?? 0} files, so a single-file purpose would be misleading. Select a single-file node for source-grounded reasoning.`)}
+              </p>
+            </InspectorSection>
+
+            <InspectorSection
+              eyebrow="What does it do?"
+              title="Key responsibilities"
+            >
+              {loadingFileAnalysis ? (
+                <div className="space-y-2">
+                  {[1, 2, 3].map((item) => (
+                    <div
+                      key={item}
+                      className="h-11 animate-pulse rounded-xl border border-white/5 bg-white/[0.02]"
+                    />
+                  ))}
+                </div>
+              ) : fileAnalysis?.what_it_does?.length ? (
+                <div className="space-y-2">
+                  {fileAnalysis.what_it_does.map((item, index) => (
+                    <div
+                      key={`${item}-${index}`}
+                      className="flex gap-3 rounded-xl border border-white/5 bg-white/[0.018] px-3 py-3"
+                    >
+                      <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border border-purple-400/20 bg-purple-400/[0.06] text-[10px] font-semibold text-purple-300">
+                        {index + 1}
+                      </span>
+                      <p className="text-sm leading-6 text-slate-300">
+                        {item}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm leading-7 text-slate-400">
+                  {data.file_count === 1
+                    ? fileAnalysisError ||
+                      "No concrete responsibilities could be extracted from this file."
+                    : `Select a single-file node to see the exact responsibilities implemented by that file.`}
+                </p>
+              )}
+            </InspectorSection>
+
+            <InspectorSection
+              eyebrow="How does it connect?"
+              title="System flow"
+            >
+              <div className="space-y-2">
+                <FlowRow
+                  label="Incoming"
+                  value={incomingNodes.length}
+                  description="modules that point into this node"
+                  color={layer.color}
+                />
+                <FlowRow
+                  label="Outgoing"
+                  value={outgoingNodes.length}
+                  description="modules this node points toward"
+                  color={layer.color}
+                />
               </div>
-            ))}
-          </div>
-        </div>
-      )}
+            </InspectorSection>
 
-      <div className="mt-5 border-t border-white/5 pt-4">
-        <p className="text-xs leading-5 text-slate-600">
-          This node was generated from the repository file tree and
-          source/configuration content. No placeholder architecture data is
-          used.
-        </p>
+            {data.languages?.length > 0 && (
+              <InspectorSection
+                eyebrow="Technology"
+                title="Languages detected"
+              >
+                <div className="flex flex-wrap gap-2">
+                  {data.languages.map((language) => (
+                    <span
+                      key={language}
+                      className="rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-xs text-slate-400"
+                    >
+                      {language}
+                    </span>
+                  ))}
+                </div>
+              </InspectorSection>
+            )}
+
+            <div className="rounded-xl border border-white/5 bg-white/[0.018] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[10px] uppercase tracking-[0.18em] text-slate-700">
+                  Architecture source
+                </span>
+                <span className="text-[10px] text-emerald-400/70">
+                  Live repository
+                </span>
+              </div>
+              <p className="mt-2 text-xs leading-5 text-slate-600">
+                This inspector uses the module, relationship, language, and file data
+                returned by GitLoop's repository architecture analysis.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {activeTab === "connections" && (
+          <div className="space-y-5">
+            <InspectorSection
+              eyebrow="Inbound dependencies"
+              title={`${incomingNodes.length} connected module${incomingNodes.length === 1 ? "" : "s"}`}
+            >
+              {incomingNodes.length === 0 ? (
+                <EmptyState text="Nothing currently points to this node." />
+              ) : (
+                <ConnectionList
+                  nodes={incomingNodes}
+                  color={layer.color}
+                  onSelectNode={onSelectNode}
+                />
+              )}
+            </InspectorSection>
+
+            <InspectorSection
+              eyebrow="Outbound dependencies"
+              title={`${outgoingNodes.length} connected module${outgoingNodes.length === 1 ? "" : "s"}`}
+            >
+              {outgoingNodes.length === 0 ? (
+                <EmptyState text="This node has no outgoing relationship in the current map." />
+              ) : (
+                <ConnectionList
+                  nodes={outgoingNodes}
+                  color={layer.color}
+                  onSelectNode={onSelectNode}
+                />
+              )}
+            </InspectorSection>
+          </div>
+        )}
+
+        {activeTab === "files" && (
+          <InspectorSection
+            eyebrow="Repository contents"
+            title={`${data.items?.length ?? 0} file${(data.items?.length ?? 0) === 1 ? "" : "s"} in this node`}
+          >
+            {data.items?.length > 0 ? (
+              <div className="space-y-1.5">
+                {data.items.map((item) => (
+                  <div
+                    key={item}
+                    className="group rounded-lg border border-white/5 bg-white/[0.02] px-3 py-2.5 transition hover:border-white/10 hover:bg-white/[0.04]"
+                  >
+                    <p
+                      className="break-all text-[11px] leading-5 text-slate-400"
+                      title={item}
+                    >
+                      {item}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <EmptyState text="No repository file list is available for this module." />
+            )}
+          </InspectorSection>
+        )}
       </div>
+    </aside>
+  );
+}
+
+
+function InspectorSection({ eyebrow, title, children }) {
+  return (
+    <section>
+      <p className="text-[10px] uppercase tracking-[0.18em] text-slate-700">
+        {eyebrow}
+      </p>
+      <h3 className="mt-1 text-sm font-medium text-slate-200">
+        {title}
+      </h3>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+
+function FlowRow({ label, value, description, color }) {
+  return (
+    <div className="flex items-center gap-3 rounded-xl border border-white/5 bg-white/[0.02] px-3 py-3">
+      <span
+        className="h-2 w-2 rounded-full"
+        style={{
+          background: color,
+          boxShadow: `0 0 10px ${color}`,
+        }}
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-xs text-slate-300">{label}</p>
+        <p className="mt-0.5 text-[11px] text-slate-600">{description}</p>
+      </div>
+      <span className="text-sm font-semibold text-white">{value}</span>
     </div>
   );
 }
+
+
+function ConnectionList({ nodes, color, onSelectNode }) {
+  return (
+    <div className="space-y-2">
+      {nodes.map((item) => {
+        const itemData = item.data || {};
+        const itemLayer =
+          layerStyles[itemData.layer] || layerStyles.service;
+
+        return (
+          <button
+            type="button"
+            key={item.id}
+            onClick={() => onSelectNode?.(item)}
+            className="w-full rounded-xl border border-white/5 bg-white/[0.02] px-3 py-3 text-left transition hover:border-white/10 hover:bg-white/[0.045]"
+          >
+            <div className="flex items-center gap-3">
+              <span
+                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs"
+                style={{
+                  color: itemLayer.color,
+                  background: `${itemLayer.color}12`,
+                  border: `1px solid ${itemLayer.color}25`,
+                }}
+              >
+                {itemData.icon || "◈"}
+              </span>
+              <div className="min-w-0">
+                <p
+                  className="truncate text-xs font-medium text-slate-300"
+                  title={itemData.title}
+                >
+                  {itemData.title || "Unknown module"}
+                </p>
+                <p
+                  className="mt-0.5 truncate text-[10px] text-slate-600"
+                  title={itemData.description}
+                >
+                  {itemData.description || `${itemLayer.label} layer`}
+                </p>
+              </div>
+            </div>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+
+function EmptyState({ text }) {
+  return (
+    <div className="rounded-xl border border-dashed border-white/8 bg-white/[0.015] px-3 py-4 text-xs leading-5 text-slate-600">
+      {text}
+    </div>
+  );
+}
+
