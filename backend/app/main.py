@@ -163,3 +163,10 @@ app.include_router(
     repository_architecture_router,
     prefix="/api/github",
 )
+
+from app.routes.repository_ai_chat import router as repository_ai_chat_router
+
+app.include_router(
+    repository_ai_chat_router,
+    prefix="/api/github",
+)

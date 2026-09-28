@@ -4,6 +4,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
 import Codebase from "./repository/Codebase";
+import AIChat from "./repository/AIChat";
 
 const API_BASE = "http://localhost:8000";
 
@@ -312,9 +313,9 @@ export default function RepositoryDetails() {
   const activeTab = getActiveTab(location.pathname);
 
   async function fetchRepository() {
-    // Use the repository information endpoint as the single source for
-    // repository metadata. This avoids the separate repositories-list
-    // request, which can time out while talking to GitHub.
+    // Use the existing repository information endpoint as the single
+    // source for repository metadata. The older /repositories/:id
+    // endpoint is not registered in the current backend.
     const response = await fetch(
       `${API_BASE}/api/github/repositories/${repositoryId}/information`,
       { credentials: "include" }
@@ -1042,9 +1043,9 @@ export default function RepositoryDetails() {
         )}
 
         {activeTab === "ai-chat" && (
-          <Placeholder
-            title="AI Chat"
-            description="Repository-aware AI chat will appear here."
+          <AIChat
+            repository={repositoryData}
+            repositoryId={repositoryId}
           />
         )}
 
