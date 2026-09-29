@@ -6,6 +6,10 @@ import AppLayout from "../components/layout/AppLayout";
 import Codebase from "./repository/Codebase";
 import AIChat from "./repository/AIChat";
 
+import Suggestions from "./repository/Suggestions";
+import CodeReview from "./repository/CodeReview";
+import Security from "./repository/Security";
+
 const API_BASE = "http://localhost:8000";
 
 const repositoryTabs = [
@@ -1049,25 +1053,14 @@ export default function RepositoryDetails() {
           />
         )}
 
-        {activeTab === "suggestions" && (
-          <Placeholder
-            title="Suggestions"
-            description="AI-powered development suggestions will appear here."
-          />
+        {activeTab === "suggestions" && (<Suggestions repositoryId={repositoryId} />
         )}
 
-        {activeTab === "code-review" && (
-          <Placeholder
-            title="Code Review"
-            description="AI code review findings will appear here."
-          />
+        {activeTab === "code-review" && (<CodeReview repositoryId={repositoryId} />
         )}
 
         {activeTab === "security" && (
-          <Placeholder
-            title="Security"
-            description="Repository security analysis will appear here."
-          />
+          <Security repositoryId={repositoryId} />
         )}
       </div>
     </AppLayout>
