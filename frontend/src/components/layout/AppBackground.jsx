@@ -1,3 +1,5 @@
+import CodeBackground from "../Background/CodeBackground";
+
 export default function AppBackground({ children }) {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050816] text-white">
@@ -18,6 +20,9 @@ export default function AppBackground({ children }) {
             backgroundSize: "70px 70px",
           }}
         />
+
+        <CodeBackground />
+
 
         {/* Neural / AI network */}
         <svg
