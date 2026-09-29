@@ -3,3 +3,26 @@ venv/
 __pycache__/
 secrets/
 .pem
+
+
+
+# Python
+__pycache__/
+*.pyc
+venv/
+.venv/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# GitHub App private key
+backend/secrets/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Vercel
+.vercel/

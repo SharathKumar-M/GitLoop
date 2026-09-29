@@ -10,7 +10,7 @@ import Suggestions from "./repository/Suggestions";
 import CodeReview from "./repository/CodeReview";
 import Security from "./repository/Security";
 
-const API_BASE = "http://localhost:8000";
+const API_BASE = import.meta.env.VITE_API_URL;
 
 const repositoryTabs = [
   { id: "information", label: "Information", icon: "⌘" },
