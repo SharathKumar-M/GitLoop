@@ -12,7 +12,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.github_installation import GitHubInstallation
 from app.models.repository_file import RepositoryFile
 from app.models.repository_index import RepositoryIndex
 from app.routes.auth import get_current_user
@@ -22,8 +21,8 @@ from app.routes.repository_indexing import (
     get_repository_tree,
     get_file_information,
     should_ignore,
+    get_repository_access_for_index,
 )
-from app.services.github_app_service import create_installation_access_token
 
 
 router = APIRouter(
@@ -548,7 +547,7 @@ def resolve_import(
 
 
 def load_repository_archive(
-    token: str,
+    token: str | None,
     full_name: str,
     branch: str,
 ) -> dict[str, bytes]:
@@ -612,7 +611,7 @@ def load_repository_archive(
 
 
 def load_file_contents_via_blobs(
-    token: str,
+    token: str | None,
     full_name: str,
     tree_items: list[dict],
     allowed_paths: set[str],
@@ -885,29 +884,14 @@ async def get_repository_architecture(
             ),
         )
 
-    installation = (
-        db.query(GitHubInstallation)
-        .filter(
-            GitHubInstallation.user_id == user_id
-        )
-        .first()
-    )
-
-    if installation is None:
-        raise HTTPException(
-            status_code=400,
-            detail="GitHub App installation not found.",
-        )
-
     try:
-        token = await create_installation_access_token(
-            installation.installation_id
+        repository, token, source = await get_repository_access_for_index(
+            repository_index,
+            user_id,
+            db,
         )
 
-        branch = (
-            repository_index.branch
-            or "main"
-        )
+        branch = repository_index.branch or repository.get("default_branch") or "main"
         full_name = repository_index.full_name
 
         tree_data = get_repository_tree(
@@ -1234,6 +1218,7 @@ async def get_repository_architecture(
                 "branch": branch,
                 "index_status": repository_index.status,
                 "truncated": repository_index.truncated,
+                "source": source,
             },
             "stats": {
                 "files": len(live_files),

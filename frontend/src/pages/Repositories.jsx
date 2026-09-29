@@ -2,11 +2,14 @@ import { useEffect, useState } from "react";
 
 import AppLayout from "../components/layout/AppLayout";
 import RepositoryCard from "../components/dashboard/RepositoryCard";
+import PublicRepositoriesSection from "../components/repository/PublicRepositoriesSection";
 
 export default function Repositories() {
   const [repositories, setRepositories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const [repositoryMode, setRepositoryMode] = useState("own");
 
   useEffect(() => {
     async function fetchRepositories() {
@@ -57,8 +60,45 @@ export default function Repositories() {
           </p>
         </div>
 
+        {/* Repository Tabs */}
+        <div className="mb-8 border-b border-white/10">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setRepositoryMode("own")}
+              className={`relative px-5 py-3 text-sm font-medium transition ${
+                repositoryMode === "own"
+                  ? "text-white"
+                  : "text-slate-500 hover:text-slate-200"
+              }`}
+            >
+              Own Repositories
+
+              {repositoryMode === "own" && (
+                <span className="absolute inset-x-3 -bottom-px h-px bg-purple-400" />
+              )}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setRepositoryMode("public")}
+              className={`relative px-5 py-3 text-sm font-medium transition ${
+                repositoryMode === "public"
+                  ? "text-white"
+                  : "text-slate-500 hover:text-slate-200"
+              }`}
+            >
+              Public Repositories
+
+              {repositoryMode === "public" && (
+                <span className="absolute inset-x-3 -bottom-px h-px bg-purple-400" />
+              )}
+            </button>
+          </div>
+        </div>
+
         {/* Loading */}
-        {loading && (
+        {repositoryMode === "own" && loading && (
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
             <p className="text-sm text-slate-500">
               Loading repositories...
@@ -67,7 +107,7 @@ export default function Repositories() {
         )}
 
         {/* Error */}
-        {!loading && error && (
+        {repositoryMode === "own" && !loading && error && (
           <div className="rounded-2xl border border-red-500/10 bg-red-500/[0.03] p-10 text-center">
             <p className="text-sm text-red-400">
               {error}
@@ -75,27 +115,47 @@ export default function Repositories() {
           </div>
         )}
 
-        {/* Empty */}
-        {!loading &&
-          !error &&
-          repositories.length === 0 && (
-            <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
-              <p className="text-sm text-slate-500">
-                No repositories found.
+        {/* Own Repositories */}
+        {repositoryMode === "own" && !loading && !error && (
+          <section>
+            <div className="mb-5">
+              <h2 className="text-xl font-semibold text-white">
+                Own Repositories
+              </h2>
+
+              <p className="mt-1 text-sm text-slate-500">
+                Repositories connected through your GitHub account.
               </p>
             </div>
-          )}
 
-        {/* Repository cards */}
-        {!loading && !error && repositories.length > 0 && (
-          <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {repositories.map((repository) => (
-              <RepositoryCard
-                key={repository.id}
-                repository={repository}
-              />
-            ))}
-          </div>
+            {/* Empty */}
+            {repositories.length === 0 && (
+              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-10 text-center">
+                <p className="text-sm text-slate-500">
+                  No repositories found.
+                </p>
+              </div>
+            )}
+
+            {/* Repository Cards */}
+            {repositories.length > 0 && (
+              <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+                {repositories.map((repository) => (
+                  <RepositoryCard
+                    key={repository.id}
+                    repository={repository}
+                  />
+                ))}
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* Public Repositories */}
+        {repositoryMode === "public" && (
+          <section>
+            <PublicRepositoriesSection />
+          </section>
         )}
       </div>
     </AppLayout>

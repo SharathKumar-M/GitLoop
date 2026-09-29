@@ -6,28 +6,15 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.github_installation import GitHubInstallation
 from app.models.repository_file import RepositoryFile
 from app.models.repository_index import RepositoryIndex
 from app.routes.auth import get_current_user
-from app.services.github_app_service import create_installation_access_token
+from app.routes.repository_indexing import get_repository_access_for_index
 
 
 router = APIRouter(
     tags=["Repository Codebase"],
 )
-
-
-GITHUB_API = "https://api.github.com"
-GITHUB_API_VERSION = "2026-03-10"
-
-
-def github_headers(token: str):
-    return {
-        "Accept": "application/vnd.github+json",
-        "Authorization": f"Bearer {token}",
-        "X-GitHub-Api-Version": GITHUB_API_VERSION,
-    }
 
 
 def get_repository_index(
@@ -69,9 +56,7 @@ def get_repository_files(
 
     files = (
         db.query(RepositoryFile)
-        .filter(
-            RepositoryFile.repository_index_id == repository_index.id
-        )
+        .filter(RepositoryFile.repository_index_id == repository_index.id)
         .order_by(RepositoryFile.path.asc())
         .all()
     )
@@ -116,6 +101,12 @@ async def get_repository_file_content(
         db=db,
     )
 
+    if repository_index.status not in {"COMPLETED", "PARTIAL"}:
+        raise HTTPException(
+            status_code=409,
+            detail="Repository indexing is not complete.",
+        )
+
     repository_file = (
         db.query(RepositoryFile)
         .filter(
@@ -131,29 +122,21 @@ async def get_repository_file_content(
             detail="File was not found in the indexed repository.",
         )
 
-    installation = (
-        db.query(GitHubInstallation)
-        .filter(
-            GitHubInstallation.user_id == user_id
-        )
-        .first()
-    )
-
-    if installation is None:
-        raise HTTPException(
-            status_code=400,
-            detail="GitHub App installation not found.",
-        )
-
-    token = await create_installation_access_token(
-        installation.installation_id
+    _repository, token, _source = await get_repository_access_for_index(
+        repository_index,
+        user_id,
+        db,
     )
 
     encoded_sha = quote(repository_file.sha, safe="")
 
     response = requests.get(
-        f"{GITHUB_API}/repos/{repository_index.full_name}/git/blobs/{encoded_sha}",
-        headers=github_headers(token),
+        f"https://api.github.com/repos/{repository_index.full_name}/git/blobs/{encoded_sha}",
+        headers={
+            "Accept": "application/vnd.github+json",
+            **({"Authorization": f"Bearer {token}"} if token else {}),
+            "X-GitHub-Api-Version": "2026-03-10",
+        },
         timeout=30,
     )
 
@@ -176,11 +159,11 @@ async def get_repository_file_content(
             "utf-8",
             errors="replace",
         )
-    except Exception:
+    except Exception as error:
         raise HTTPException(
             status_code=422,
             detail="Unable to decode file content.",
-        )
+        ) from error
 
     return {
         "repository_id": repository_id,

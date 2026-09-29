@@ -10,12 +10,13 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from app.database.connection import get_db
-from app.models.github_installation import GitHubInstallation
 from app.models.repository_file import RepositoryFile
 from app.models.repository_index import RepositoryIndex
 from app.routes.auth import get_current_user
-from app.routes.repository_indexing import get_github_file_content
-from app.services.github_app_service import create_installation_access_token
+from app.routes.repository_indexing import (
+    get_github_file_content,
+    get_repository_access_for_index,
+)
 
 
 router = APIRouter(tags=["AI Chat"])
@@ -31,7 +32,6 @@ AI_MAX_OUTPUT_TOKENS = 1800
 AI_TEMPERATURE = 0.15
 
 GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
-OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions"
 GEMINI_API_URL = (
     "https://generativelanguage.googleapis.com/v1beta/"
     "models/gemini-3.8-flash:generateContent"
@@ -155,7 +155,6 @@ def choose_relevant_files(
             "gemini",
             "openai",
             "groq",
-            "openrouter",
             "llm",
             "embedding",
             "embeddings",
@@ -311,11 +310,6 @@ def provider_headers(name: str, api_key: str) -> dict[str, str]:
         "Content-Type": "application/json",
     }
 
-    if name == "openrouter":
-        frontend_url = os.getenv("FRONTEND_URL", "http://localhost:5173")
-        headers["HTTP-Referer"] = frontend_url
-        headers["X-Title"] = "GitLoop"
-
     return headers
 
 
@@ -450,8 +444,6 @@ class ProviderError(Exception):
 def provider_is_configured(name: str) -> bool:
     if name == "groq":
         return bool(os.getenv("GROQ_API_KEY"))
-    if name == "openrouter":
-        return bool(os.getenv("OPENROUTER_API_KEY"))
     if name == "gemini":
         return bool(os.getenv("GEMINI_API_KEY"))
     return False
@@ -459,11 +451,9 @@ def provider_is_configured(name: str) -> bool:
 
 async def call_ai(prompt: str) -> tuple[dict, str, str]:
     groq_key = os.getenv("GROQ_API_KEY")
-    openrouter_key = os.getenv("OPENROUTER_API_KEY")
     gemini_key = os.getenv("GEMINI_API_KEY")
 
     groq_model = os.getenv("GROQ_MODEL", "openai/gpt-oss-120b")
-    openrouter_model = os.getenv("OPENROUTER_MODEL", "openrouter/free")
 
     attempts = []
 
@@ -479,18 +469,6 @@ async def call_ai(prompt: str) -> tuple[dict, str, str]:
                 prompt=prompt,
             ),
             groq_model,
-        ),
-        (
-            "openrouter",
-            openrouter_key,
-            lambda: call_openai_compatible(
-                name="openrouter",
-                api_key=openrouter_key,
-                api_url=OPENROUTER_API_URL,
-                model=openrouter_model,
-                prompt=prompt,
-            ),
-            openrouter_model,
         ),
         (
             "gemini",
@@ -533,7 +511,7 @@ async def call_ai(prompt: str) -> tuple[dict, str, str]:
             status_code=503,
             detail=(
                 "No AI provider is configured. Add GROQ_API_KEY or "
-                "OPENROUTER_API_KEY to the backend .env file."
+                "GEMINI_API_KEY to the backend .env file."
             ),
         )
 
@@ -602,20 +580,10 @@ async def get_repository_context(
             detail="No indexed repository files are available for AI chat.",
         )
 
-    installation = (
-        db.query(GitHubInstallation)
-        .filter(GitHubInstallation.user_id == user_id)
-        .first()
-    )
-
-    if installation is None:
-        raise HTTPException(
-            status_code=400,
-            detail="GitHub App installation not found.",
-        )
-
-    token = await create_installation_access_token(
-        installation.installation_id
+    _repository, token, _source = await get_repository_access_for_index(
+        repository_index,
+        user_id,
+        db,
     )
 
     return repository_index, files, token
