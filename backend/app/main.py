@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
@@ -43,11 +45,18 @@ app = FastAPI(
 )
 
 
+FRONTEND_URL = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173",
+).rstrip("/")
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:5173",
         "http://127.0.0.1:5173",
+        FRONTEND_URL,
     ],
     allow_credentials=True,
     allow_methods=["*"],
@@ -80,4 +89,5 @@ def db_test():
     with engine.connect() as connection:
         result = connection.execute(text("SELECT 1"))
         value = result.scalar()
+
     return {"database": "connected", "result": value}

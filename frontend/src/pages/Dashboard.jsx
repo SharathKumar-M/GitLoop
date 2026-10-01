@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import AppLayout from "../components/layout/AppLayout";
 import StatCard from "../components/dashboard/StatCard";
 import { useAuth } from "../context/useauth";
+import API_URL from "../services/api";
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -25,7 +26,7 @@ export default function Dashboard() {
         setRepositoryError("");
 
         const response = await fetch(
-          "http://localhost:8000/api/github/repositories",
+          `${API_URL}/api/github/repositories`,
           {
             credentials: "include",
           }
@@ -56,7 +57,7 @@ export default function Dashboard() {
         setActivityError("");
 
         const response = await fetch(
-          "http://localhost:8000/api/github/activity",
+          `${API_URL}/api/github/activity`,
           {
             credentials: "include",
           }

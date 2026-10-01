@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import API_URL from "../../services/api";
 
 const crispGithubTheme = {
   plain: { color: "#f5f7fa", background: "transparent" },
@@ -472,7 +473,7 @@ export default function Codebase({ repositoryId }) {
         setError("");
 
         const response = await fetch(
-          `http://localhost:8000/api/github/repositories/${repositoryId}/files`,
+          `${API_URL}/api/github/repositories/${repositoryId}/files`,
           {
             credentials: "include",
           }
@@ -522,7 +523,7 @@ export default function Codebase({ repositoryId }) {
         setLoadingContent(true);
 
         const response = await fetch(
-          `http://localhost:8000/api/github/repositories/${repositoryId}/file-content?path=${encodeURIComponent(
+          `${API_URL}/api/github/repositories/${repositoryId}/file-content?path=${encodeURIComponent(
             selectedFile.path
           )}`,
           {
@@ -571,7 +572,7 @@ export default function Codebase({ repositoryId }) {
         setAiAnalysisError("");
 
         const response = await fetch(
-          `http://localhost:8000/api/github/repositories/${repositoryId}/file-intelligence`,
+          `${API_URL}/api/github/repositories/${repositoryId}/file-intelligence`,
           {
             method: "POST",
             credentials: "include",

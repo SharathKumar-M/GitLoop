@@ -108,9 +108,11 @@ function Login() {
             <button
             onClick={() => {
     // Keep this host identical to GITHUB_REDIRECT_URI. OAuth state is stored
-    // in a host-only cookie, so mixing 127.0.0.1 and localhost drops it during
+    // in a host-only cookie, so mixing 127.0.0.1 and drops it during
     // GitHub's callback.
-    window.location.href = "http://localhost:8000/auth/github";
+   const API_URL = import.meta.env.VITE_API_URL;
+
+   window.location.href = `${API_URL}/auth/github`;
   }}
               className="
                 mt-8
