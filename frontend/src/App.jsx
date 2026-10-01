@@ -7,7 +7,7 @@ import {
 import Landing from "./pages/landing";
 import Login from "./pages/login";
 import Dashboard from "./pages/Dashboard";
-import Profile from "./pages/profile";
+import Profile from "./pages/Profile";
 import Repositories from "./pages/Repositories";
 import RepositoryDetails from "./pages/RepositoryDetails";
 
@@ -121,7 +121,7 @@ function App() {
               <ProtectedRoute>
                 <Profile />
               </ProtectedRoute>
-            }s
+            }
           />
 
           <Route
