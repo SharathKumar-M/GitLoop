@@ -8,7 +8,7 @@ import AIChat from "./repository/AIChat";
 
 import Suggestions from "./repository/Suggestions";
 import CodeReview from "./repository/CodeReview";
-import Security from "./repository/Security";
+import Security from "./repository/security";
 
 const API_BASE = import.meta.env.VITE_API_URL;
 
