@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/useauth";
 
 export default function Profile() {
   const { user, logout } = useAuth();

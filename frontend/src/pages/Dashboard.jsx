@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import AppLayout from "../components/layout/AppLayout";
 import StatCard from "../components/dashboard/StatCard";
-import { useAuth } from "../context/useAuth";
+import { useAuth } from "../context/useauth";
 
 export default function Dashboard() {
   const { user } = useAuth();

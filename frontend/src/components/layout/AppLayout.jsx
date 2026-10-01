@@ -1,8 +1,8 @@
 import { useState } from "react";
 import Sidebar from "../dashboard/Sidebar";
-import Topbar from "../dashboard/Topbar";
+import Topbar from "../dashboard/topbar";
 import AppBackground from "./AppBackground";
-import { useAuth } from "../../context/useAuth";
+import { useAuth } from "../../context/useauth";
 
 export default function AppLayout({ children }) {
   const { user } = useAuth();

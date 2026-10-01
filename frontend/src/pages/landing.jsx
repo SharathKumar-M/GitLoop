@@ -1,8 +1,8 @@
-import Background from "../components/landing/Background";
-import Navbar from "../components/layout/Navbar";
-import Hero from "../components/landing/Hero";
-import RepositoryPreview from "../components/landing/RepositoryPreview";
-import Features from "../components/landing/Features";
+import Background from "../components/landing/background";
+import Navbar from "../components/layout/navbar";
+import Hero from "../components/landing/hero";
+import RepositoryPreview from "../components/landing/repositoryPreview";
+import Features from "../components/landing/features";
 
 function Landing() {
   return (
