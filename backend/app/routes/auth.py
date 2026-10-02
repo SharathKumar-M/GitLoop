@@ -123,12 +123,19 @@ async def github_callback(
         )
 
     token_data = token_response.json()
+
     access_token = token_data.get("access_token")
 
     if not access_token:
         raise HTTPException(
             status_code=400,
-            detail="GitHub did not return an access token",
+            detail={
+                "message": "GitHub did not return an access token",
+                "github_error": token_data.get("error"),
+                "github_error_description": token_data.get(
+                    "error_description"
+                ),
+            },
         )
 
     # -------------------------------------
