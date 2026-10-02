@@ -66,15 +66,14 @@ async def github_login(response: Response):
     )
 
     redirect_response.set_cookie(
-        key=SESSION_COOKIE_NAME,
-        value=session_token,
+        key="oauth_state",
+        value=state,
         httponly=True,
         secure=IS_PRODUCTION,
         samesite="none" if IS_PRODUCTION else "lax",
-        max_age=SESSION_DAYS * 24 * 60 * 60,
+        max_age=600,
         path="/",
     )
-
     return redirect_response
 
 
@@ -234,8 +233,8 @@ async def github_callback(
         key=SESSION_COOKIE_NAME,
         value=session_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
         max_age=SESSION_DAYS * 24 * 60 * 60,
         path="/",
     )
