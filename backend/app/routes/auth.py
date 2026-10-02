@@ -32,6 +32,8 @@ FRONTEND_URL = os.getenv(
     "http://localhost:5173",
 )
 
+IS_PRODUCTION = FRONTEND_URL.startswith("https://")
+
 SESSION_COOKIE_NAME = "gitloop_session"
 SESSION_DAYS = 7  # Session expiration in days
 
@@ -64,12 +66,13 @@ async def github_login(response: Response):
     )
 
     redirect_response.set_cookie(
-        key="oauth_state",
-        value=state,
+        key=SESSION_COOKIE_NAME,
+        value=session_token,
         httponly=True,
-        secure=False,
-        samesite="lax",
-        max_age=600,
+        secure=IS_PRODUCTION,
+        samesite="none" if IS_PRODUCTION else "lax",
+        max_age=SESSION_DAYS * 24 * 60 * 60,
+        path="/",
     )
 
     return redirect_response
