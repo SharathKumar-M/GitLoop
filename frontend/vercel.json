@@ -1,3 +1,4 @@
+
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
@@ -8,6 +9,10 @@
     {
       "source": "/api/:path*",
       "destination": "https://gitloop.onrender.com/api/:path*"
+    },
+    {
+      "source": "/github/app/:path*",
+      "destination": "https://gitloop.onrender.com/github/app/:path*"
     },
     {
       "source": "/(.*)",
