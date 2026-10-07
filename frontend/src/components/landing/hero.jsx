@@ -41,7 +41,7 @@ function Hero() {
 
 
         {/* Buttons */}
-        <div className="mt-8 flex items-center justify-center gap-4">
+        <div className="mt-8 flex flex-col items-stretch justify-center gap-3 sm:flex-row sm:items-center sm:gap-4">
 
           <button
   onClick={() => navigate("/login")}

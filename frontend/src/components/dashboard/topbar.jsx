@@ -6,15 +6,15 @@ export default function Topbar({ user }) {
 
 
   return (
-    <header className="flex h-20 items-center justify-between border-b border-white/10 bg-[#05050b]/80 px-6 backdrop-blur-xl lg:px-8">
+    <header className="flex h-20 items-center justify-between border-b border-white/10 bg-[#05050b]/80 px-4 backdrop-blur-xl sm:px-6 lg:px-8">
 
       {/* Left side */}
-      <div>
+      <div className="ml-12 min-w-0 md:ml-0">
         <p className="text-sm text-slate-500">
           GitLoop
         </p>
 
-        <h2 className="text-lg font-semibold text-white">
+        <h2 className="text-base font-semibold text-white sm:text-lg">
           Codebase Intelligence
         </h2>
       </div>

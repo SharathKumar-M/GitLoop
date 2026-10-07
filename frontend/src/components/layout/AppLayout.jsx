@@ -6,15 +6,26 @@ import { useAuth } from "../../context/useauth";
 
 export default function AppLayout({ children }) {
   const { user } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(
+    () => window.matchMedia("(min-width: 768px)").matches
+  );
 
   return (
     <AppBackground>
       <div className="min-h-screen">
+        {sidebarOpen && (
+          <button
+            type="button"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Close sidebar"
+            className="fixed inset-0 z-40 bg-black/60 md:hidden"
+          />
+        )}
+
         {/* Sidebar */}
         <div
           className={`fixed left-0 top-0 z-50 h-screen overflow-hidden transition-[width] duration-200 ease-out ${
-            sidebarOpen ? "w-72" : "w-16"
+            sidebarOpen ? "w-72" : "w-0 md:w-16"
           }`}
         >
           <Sidebar
@@ -59,13 +70,13 @@ export default function AppLayout({ children }) {
         )}
 
         <div
-          className={`min-h-screen transition-[padding-left] duration-200 ease-out ${
-            sidebarOpen ? "pl-72" : "pl-16"
+          className={`min-h-screen pl-0 transition-[padding-left] duration-200 ease-out ${
+            sidebarOpen ? "md:pl-72" : "md:pl-16"
           }`}
         >
           <Topbar user={user} />
 
-          <main className="min-h-[calc(100vh-72px)] px-8 py-8">
+          <main className="min-h-[calc(100vh-72px)] px-4 py-6 sm:px-6 md:px-8 md:py-8">
             {children}
           </main>
         </div>

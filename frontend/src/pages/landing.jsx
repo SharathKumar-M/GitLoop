@@ -6,7 +6,7 @@ import Features from "../components/landing/features";
 
 function Landing() {
   return (
-    <main className="relative min-h-screen bg-[#05050b]">
+    <main className="relative min-h-screen overflow-x-clip bg-[#05050b]">
 
       {/* Background */}
       <Background />

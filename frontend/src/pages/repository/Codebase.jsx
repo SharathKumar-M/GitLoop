@@ -843,8 +843,8 @@ export default function Codebase({ repositoryId }) {
           <div
             className={`grid min-h-[710px] overflow-hidden rounded-3xl border border-white/10 bg-[#07070b]/95 shadow-[0_30px_100px_rgba(0,0,0,0.35)] ${
               showIntelligence
-                ? "grid-cols-[280px_minmax(0,1fr)_330px]"
-                : "grid-cols-[280px_minmax(0,1fr)]"
+                ? "grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)_330px]"
+                : "grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]"
             }`}
           >
             {/* Explorer */}

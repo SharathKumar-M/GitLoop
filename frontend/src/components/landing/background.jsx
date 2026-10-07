@@ -9,11 +9,11 @@ function Background() {
       <div className="absolute inset-0 bg-[#05050b]" />
 
       {/* Main atmospheric glows */}
-      <div className="absolute left-1/2 top-[-250px] h-[650px] w-[650px] -translate-x-1/2 rounded-full bg-purple-700/10 blur-[180px]" />
+      <div className="network-glow network-glow-top absolute left-1/2 top-[-250px] h-[650px] w-[650px] -translate-x-1/2 rounded-full bg-purple-700/10 blur-[180px]" />
 
-      <div className="absolute left-[-250px] top-[150px] h-[500px] w-[500px] rounded-full bg-violet-700/10 blur-[160px]" />
+      <div className="network-glow network-glow-left absolute left-[-250px] top-[150px] h-[500px] w-[500px] rounded-full bg-violet-700/10 blur-[160px]" />
 
-      <div className="absolute right-[-250px] top-[180px] h-[500px] w-[500px] rounded-full bg-blue-700/10 blur-[160px]" />
+      <div className="network-glow network-glow-right absolute right-[-250px] top-[180px] h-[500px] w-[500px] rounded-full bg-blue-700/10 blur-[160px]" />
 
       {/* Stars */}
       <div className="network-stars" />
@@ -22,7 +22,7 @@ function Background() {
       <svg
         className="network-svg"
   viewBox="0 0 1600 900"
-  preserveAspectRatio="none"
+  preserveAspectRatio="xMidYMid slice"
   aria-hidden="true"
 >
   {/* LEFT SIDE */}
