@@ -39,7 +39,7 @@ export default function RepositoryCard({ repository }) {
       <div className="mt-6 space-y-3">
         <div className="flex items-center justify-between">
           <span className="text-sm text-slate-500">
-            Language..
+            Language
           </span>
 
           <span className="text-sm text-slate-300">
